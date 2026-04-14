@@ -80,7 +80,8 @@ export default function BattleMode() {
   const [index, setIndex]           = useState(0)
   const [chosen, setChosen]         = useState(null)
   const [stats, setStats]           = useState({ correct: 0, wrong: 0 })
-  const loadingMore = useRef(false)
+  const loadingMore  = useRef(false)
+  const hasChosen    = useRef(false)  // cerrojo síncrono contra clicks rápidos
 
   // Carga inicial
   useEffect(() => {
@@ -119,7 +120,8 @@ export default function BattleMode() {
   const isCorrect = chosen === scenario.correct
 
   function choose(moveName) {
-    if (revealed) return
+    if (hasChosen.current) return   // bloqueo síncrono
+    hasChosen.current = true
     setChosen(moveName)
     setStats(s => ({
       correct: moveName === scenario.correct ? s.correct + 1 : s.correct,
@@ -128,6 +130,7 @@ export default function BattleMode() {
   }
 
   function next() {
+    hasChosen.current = false
     setIndex(i => i + 1)
     setChosen(null)
   }
