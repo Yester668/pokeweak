@@ -97,19 +97,17 @@ function Timer({ seconds, onExpire }) {
 
 function AmuletRack({ amulets }) {
   if (amulets.length === 0) return (
-    <div style={{ color: '#333', fontSize: 12, padding: '8px 0', fontStyle: 'italic' }}>
+    <div style={{ color: '#333', fontSize: 12, padding: '4px 0', fontStyle: 'italic' }}>
       Sin amuletos — consigue uno en la tienda tras el primer blind
     </div>
   )
   return (
-    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
       {amulets.map(a => (
         <div key={a.id} className="tr-amulet" title={a.hint}>
-          <span style={{ fontSize: 20, lineHeight: 1 }}>{a.emoji}</span>
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#ddd', lineHeight: 1.2 }}>{a.name}</div>
-            <div style={{ fontSize: 11, color: '#666', lineHeight: 1.3, marginTop: 2 }}>{a.description}</div>
-          </div>
+          <span style={{ fontSize: 16, lineHeight: 1, flexShrink: 0 }}>{a.emoji}</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: '#bbb', flexShrink: 0, minWidth: 110 }}>{a.name}</span>
+          <span style={{ fontSize: 11, color: '#555' }}>{a.shortDesc}</span>
         </div>
       ))}
     </div>
