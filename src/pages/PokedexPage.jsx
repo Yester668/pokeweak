@@ -74,45 +74,55 @@ function EffectivenessSection({ types, onTypeClick }) {
   )
 }
 
+// Ancho fijo de cada celda para que la cadena sea uniforme
+const EVO_CELL_W = 72
+
+function EvoCell({ pokemon: p, onSelect }) {
+  return (
+    <button
+      onClick={() => onSelect(p.id)}
+      style={{
+        width: EVO_CELL_W, minWidth: EVO_CELL_W,
+        background: '#0f0f1f', border: '1px solid #2a2a4a', borderRadius: 8,
+        padding: '6px 4px', cursor: 'pointer', fontFamily: 'inherit',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+        transition: 'border-color 0.15s',
+      }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = '#7038F8' }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = '#2a2a4a' }}
+    >
+      <img src={getSpriteUrl(p.id)} alt={p.name} width={52} height={52}
+        style={{ imageRendering: 'pixelated', objectFit: 'contain' }} loading="lazy" />
+      <span style={{ fontSize: 9, color: '#666', textTransform: 'capitalize', textAlign: 'center', lineHeight: 1.2 }}>
+        {p.name}
+      </span>
+    </button>
+  )
+}
+
 function EvolutionChain({ stages, onSelect }) {
   if (!stages || stages.length <= 1) return (
     <p style={{ color: '#444', fontSize: 13, margin: 0 }}>No evoluciona</p>
   )
   return (
-    <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 4 }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: 6 }}>
       {stages.map((stage, si) => (
-        <div key={si} style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
-          {/* Flecha + método entre stages */}
+        <div key={si} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {/* Conector entre stages — ancho fijo */}
           {si > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 4px' }}>
-              <span style={{ color: '#333', fontSize: 16 }}>→</span>
-              {stage[0]?.method && (
-                <span style={{ fontSize: 9, color: '#444', maxWidth: 52, textAlign: 'center', lineHeight: 1.2 }}>
-                  {stage[0].method}
-                </span>
-              )}
+            <div style={{
+              width: 38, flexShrink: 0,
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+            }}>
+              <span style={{ color: '#333', fontSize: 14 }}>→</span>
+              <span style={{ fontSize: 9, color: '#444', textAlign: 'center', lineHeight: 1.2, wordBreak: 'break-word' }}>
+                {stage[0]?.method ?? ''}
+              </span>
             </div>
           )}
-          {/* Pokémon de este stage (puede haber varios en ramificaciones) */}
-          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-            {stage.map(p => (
-              <button
-                key={p.id}
-                onClick={() => onSelect(p.id)}
-                style={{
-                  background: '#0f0f1f', border: '1px solid #2a2a4a', borderRadius: 8,
-                  padding: '6px 8px', cursor: 'pointer', fontFamily: 'inherit',
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-                  transition: 'border-color 0.15s',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = '#7038F8' }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = '#2a2a4a' }}
-              >
-                <img src={getSpriteUrl(p.id)} alt={p.name} width={48} height={48}
-                  style={{ imageRendering: 'pixelated', objectFit: 'contain' }} loading="lazy" />
-                <span style={{ fontSize: 10, color: '#666', textTransform: 'capitalize' }}>{p.name}</span>
-              </button>
-            ))}
+          {/* Columna de Pokémon (puede haber varios en ramificaciones) */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center' }}>
+            {stage.map(p => <EvoCell key={p.id} pokemon={p} onSelect={onSelect} />)}
           </div>
         </div>
       ))}
