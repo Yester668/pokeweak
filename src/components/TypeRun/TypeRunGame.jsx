@@ -3,7 +3,7 @@ import { TYPE_COLORS, TYPE_NAMES_ES } from '../../data/types'
 import { getSpriteUrl } from '../../data/pokemon'
 import TypeIcon from '../TypeIcon'
 import {
-  buildHand, buildRun, buildShopOffers, calculateTurn, pickCursedType,
+  buildHand, buildRun, buildDynamicRun, buildShopOffers, calculateTurn, pickCursedType,
   MAX_PLAY, TURNS, TIMER_SECS, MAX_AMULETS,
 } from './engine'
 
@@ -198,8 +198,21 @@ function effectColor(e) {
 }
 
 // ── Tienda ────────────────────────────────────────────────────────────────────
-function Shop({ offers, amulets, onPick, onSkip }) {
+function Shop({ offers: initialOffers, amulets, onPick, onSkip }) {
+  const [offers, setOffers]     = useState(initialOffers)
+  const [rerolled, setRerolled] = useState(false)
+  const shownRef = useRef(new Set(initialOffers.map(o => o.id)))
   const full = amulets.length >= MAX_AMULETS
+
+  function handleReroll() {
+    if (rerolled) return
+    const excluded = [...amulets.map(a => a.id), ...shownRef.current]
+    const fresh = buildShopOffers(excluded, 3)
+    fresh.forEach(o => shownRef.current.add(o.id))
+    setOffers(fresh)
+    setRerolled(true)
+  }
+
   return (
     <div className="tr-shop fade-in">
       <h2 style={{ margin: '0 0 6px', fontSize: 20 }}>🛒 Tienda</h2>
@@ -222,9 +235,86 @@ function Shop({ offers, amulets, onPick, onSkip }) {
           </button>
         ))}
       </div>
-      <button onClick={onSkip} className="tr-btn" style={{ background: '#1a1a2e', color: '#555', border: '1px solid #2a2a3f' }}>
-        Saltar tienda →
-      </button>
+      <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+        <button
+          onClick={handleReroll}
+          disabled={rerolled}
+          style={{
+            background: '#1a1a2e',
+            color: rerolled ? '#333' : '#666',
+            border: `1px solid ${rerolled ? '#1a1a2e' : '#2a2a3f'}`,
+            padding: '10px 20px', borderRadius: 8, fontFamily: 'inherit',
+            fontSize: 13, fontWeight: 600, cursor: rerolled ? 'not-allowed' : 'pointer',
+          }}
+        >
+          {rerolled ? '🔀 Reroll usado' : '🔀 Reroll (1 por tienda)'}
+        </button>
+        <button onClick={onSkip} className="tr-btn" style={{ background: '#1a1a2e', color: '#555', border: '1px solid #2a2a3f' }}>
+          Saltar tienda →
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── Resumen post-rival ────────────────────────────────────────────────────────
+function BattleSummary({ rival, turnHistory, turnsUsed, onContinue }) {
+  // Agrega daño total por tipo a lo largo de todos los turnos
+  const typeStats = {}
+  for (const turn of turnHistory) {
+    for (const p of turn) {
+      if (!typeStats[p.type]) typeStats[p.type] = { damage: 0, hits: 0, bestEff: 0 }
+      typeStats[p.type].damage  += p.subtotal
+      typeStats[p.type].hits    += 1
+      typeStats[p.type].bestEff  = Math.max(typeStats[p.type].bestEff, p.effectiveness)
+    }
+  }
+
+  const sorted = Object.entries(typeStats).sort((a, b) => b[1].damage - a[1].damage)
+  const totalDmg = sorted.reduce((s, [, v]) => s + v.damage, 0)
+
+  return (
+    <div className="tr-gameover fade-in">
+      <div className="tr-gameover__inner">
+        <p style={{ fontSize: 44, margin: '0 0 6px' }}>⚔️</p>
+        <h2 style={{ margin: '0 0 4px', fontSize: 22, color: '#22c55e' }}>
+          {rival.name} derrotado
+        </h2>
+        <p style={{ margin: '0 0 20px', color: '#555', fontSize: 13 }}>
+          En {turnsUsed} turno{turnsUsed !== 1 ? 's' : ''} · {totalDmg} daño total
+        </p>
+
+        <div style={{ textAlign: 'left', marginBottom: 20 }}>
+          <p style={{ margin: '0 0 10px', fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+            Tipos usados
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {sorted.map(([type, data]) => {
+              const pct   = totalDmg > 0 ? (data.damage / totalDmg) * 100 : 0
+              const color = data.bestEff >= 2 ? '#22c55e' : data.bestEff === 0 ? '#ef4444' : data.bestEff < 1 ? '#f59e0b' : '#888'
+              return (
+                <div key={type}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3, fontSize: 12 }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <TypeIcon type={type} size={12} />
+                      <span style={{ color: TYPE_COLORS[type] }}>{TYPE_NAMES_ES[type]}</span>
+                      <span style={{ color, fontSize: 11 }}>×{data.bestEff}</span>
+                    </span>
+                    <span style={{ color: '#666' }}>{data.damage} dmg</span>
+                  </div>
+                  <div style={{ height: 4, background: '#1a1a2e', borderRadius: 2, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 2, transition: 'width 0.5s ease' }} />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        <button onClick={onContinue} className="tr-btn" style={{ background: '#7038F8' }}>
+          Ir a la tienda →
+        </button>
+      </div>
     </div>
   )
 }
@@ -289,28 +379,72 @@ function Victory({ stats, onRestart }) {
 }
 
 // ── Máquina de estados principal ──────────────────────────────────────────────
-function initState() {
-  const run = buildRun()
+function makeInitState(run) {
   const first = run[0]
   return {
-    phase: 'battle',        // 'battle' | 'resolving' | 'shop' | 'gameover' | 'victory'
+    phase: 'battle',        // 'battle'|'resolving'|'summary'|'shop'|'gameover'|'victory'
     run,
     runIndex: 0,
     rival: { ...first, maxHp: first.hp },
     turnsLeft: TURNS,
     hand: buildHand(),
-    selected: [],           // índices de la mano seleccionados
+    selected: [],
     amulets: [],
     lastResult: null,
-    timerKey: 0,            // cambiar para resetear el timer
+    turnHistory: [],
+    timerKey: 0,
     typesHidden: first.boss && first.bossEffect === 'niebla',
     cursedType: null,
     stats: { totalDamage: 0, blindsBeaten: 0, ante: 1, blind: 1 },
+    _nextRunIndex: null,
   }
 }
 
+async function loadRun() {
+  try { return await buildDynamicRun() }
+  catch { return buildRun() } // fallback estático si falla la red
+}
+
+function RunLoading() {
+  return (
+    <div style={{ maxWidth: 680, margin: '0 auto', textAlign: 'center', padding: '60px 24px' }}>
+      <p style={{ fontSize: 36, margin: '0 0 16px' }}>🎰</p>
+      <p style={{ color: '#555', fontSize: 14 }}>Generando rivales desde PokéAPI…</p>
+      <div style={{ marginTop: 24, display: 'flex', gap: 6, justifyContent: 'center' }}>
+        {[0,1,2].map(i => (
+          <div key={i} style={{
+            width: 8, height: 8, borderRadius: '50%', background: '#7038F8',
+            animation: `bounce 0.8s ease ${i * 0.15}s infinite alternate`,
+          }} />
+        ))}
+      </div>
+      <style>{`@keyframes bounce { from { opacity:0.2; transform:translateY(0) } to { opacity:1; transform:translateY(-6px) } }`}</style>
+    </div>
+  )
+}
+
 export default function TypeRunGame() {
-  const [state, setState] = useState(initState)
+  const [state, setState]       = useState(null)
+  const [runLoading, setRunLoad] = useState(true)
+
+  // Carga inicial y restart
+  useEffect(() => {
+    loadRun().then(run => {
+      setState(makeInitState(run))
+      setRunLoad(false)
+    })
+  }, [])
+
+  const restart = useCallback(() => {
+    setRunLoad(true)
+    setState(null)
+    loadRun().then(run => {
+      setState(makeInitState(run))
+      setRunLoad(false)
+    })
+  }, [])
+
+  if (runLoading || !state) return <RunLoading />
 
   const { phase, rival, turnsLeft, hand, selected, amulets, lastResult, timerKey, typesHidden, cursedType, stats } = state
 
@@ -334,6 +468,7 @@ export default function TypeRunGame() {
         rivalTypes: s.rival.types,
         amulets: s.amulets,
         cursedType: s.cursedType,
+        ante: Math.floor(s.runIndex / 3) + 1,
       })
 
       const newHp = Math.max(0, s.rival.hp - result.damage)
@@ -342,6 +477,7 @@ export default function TypeRunGame() {
         phase: 'resolving',
         rival: { ...s.rival, hp: newHp },
         lastResult: result,
+        turnHistory: [...s.turnHistory, result.perType],
         stats: { ...s.stats, totalDamage: s.stats.totalDamage + result.damage },
       }
     })
@@ -353,7 +489,7 @@ export default function TypeRunGame() {
       if (s.phase !== 'battle') return s
       const autoIdx = [Math.floor(Math.random() * s.hand.length)]
       const played  = autoIdx.map(i => s.hand[i])
-      const result  = calculateTurn({ played, rivalTypes: s.rival.types, amulets: s.amulets, cursedType: s.cursedType })
+      const result  = calculateTurn({ played, rivalTypes: s.rival.types, amulets: s.amulets, cursedType: s.cursedType, ante: Math.floor(s.runIndex / 3) + 1 })
       const newHp   = Math.max(0, s.rival.hp - result.damage)
       return {
         ...s,
@@ -361,6 +497,7 @@ export default function TypeRunGame() {
         selected: autoIdx,
         rival: { ...s.rival, hp: newHp },
         lastResult: result,
+        turnHistory: [...s.turnHistory, result.perType],
         stats: { ...s.stats, totalDamage: s.stats.totalDamage + result.damage },
       }
     })
@@ -372,15 +509,15 @@ export default function TypeRunGame() {
       const rivalDefeated = s.rival.hp <= 0
       const turnsExhausted = s.turnsLeft <= 1
 
-      // Rival derrotado → tienda o siguiente rival
+      // Rival derrotado → resumen → tienda (o victoria si era el último)
       if (rivalDefeated) {
         const nextRunIndex = s.runIndex + 1
-        if (nextRunIndex >= s.run.length) {
-          return { ...s, phase: 'victory' }
-        }
+        const isLast = nextRunIndex >= s.run.length
         return {
           ...s,
-          phase: 'shop',
+          phase: 'summary',
+          // guardamos nextRunIndex para usarlo al salir del resumen
+          _nextRunIndex: isLast ? null : nextRunIndex,
           stats: {
             ...s.stats,
             blindsBeaten: s.stats.blindsBeaten + 1,
@@ -417,6 +554,14 @@ export default function TypeRunGame() {
         cursedType: newCursed,
         typesHidden: false, // se revela tras primer ataque en modo niebla
       }
+    })
+  }, [])
+
+  // ── Salir del resumen → tienda o victoria ────
+  const leaveSummary = useCallback(() => {
+    setState(s => {
+      if (s._nextRunIndex === null) return { ...s, phase: 'victory' }
+      return { ...s, phase: 'shop', turnHistory: [] }
     })
   }, [])
 
@@ -466,11 +611,22 @@ export default function TypeRunGame() {
     })
   }, [])
 
-  const restart = useCallback(() => setState(initState), [])
 
   // ── Render ────────────────────────────────────────────────────────────────
   if (phase === 'gameover') return <GameOver stats={stats} onRestart={restart} />
   if (phase === 'victory')  return <Victory  stats={stats} onRestart={restart} />
+
+  if (phase === 'summary') {
+    const turnsUsed = TURNS - state.turnsLeft + 1
+    return (
+      <BattleSummary
+        rival={rival}
+        turnHistory={state.turnHistory}
+        turnsUsed={turnsUsed}
+        onContinue={leaveSummary}
+      />
+    )
+  }
 
   if (phase === 'shop') {
     const offers = buildShopOffers(amulets.map(a => a.id))
