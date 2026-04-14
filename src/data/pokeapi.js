@@ -103,6 +103,38 @@ export async function fetchPokemonFull(idOrName) {
 }
 
 /**
+ * Devuelve los primeros N Pokémon de un tipo dado.
+ * typeName: nombre en inglés ('electric', 'fire', …)
+ * Retorna [{ id, name }] ordenados por ID.
+ */
+export async function fetchPokemonByType(typeName, limit = 24) {
+  const cacheKey = `type_${typeName}`
+  const cache    = getFullCache()
+
+  if (cache[cacheKey]?.ts && Date.now() - cache[cacheKey].ts < CACHE_TTL) {
+    return cache[cacheKey].data
+  }
+
+  const res = await fetch(`https://pokeapi.co/api/v2/type/${typeName}`)
+  if (!res.ok) throw new Error(`PokéAPI type ${res.status}: ${typeName}`)
+
+  const json = await res.json()
+  // Extraer ID de la URL y filtrar formas alternativas (id > 10000)
+  const list = json.pokemon
+    .map(({ pokemon }) => {
+      const parts = pokemon.url.split('/').filter(Boolean)
+      const id    = parseInt(parts[parts.length - 1], 10)
+      return { id, name: pokemon.name }
+    })
+    .filter(p => p.id <= 1025)       // excluir formas alternativas
+    .sort((a, b) => a.id - b.id)
+    .slice(0, limit)
+
+  saveFullCache({ ...cache, [cacheKey]: { ts: Date.now(), data: list } })
+  return list
+}
+
+/**
  * Descripción en español desde el endpoint de species.
  * Devuelve string o null si no hay entrada en español.
  */
