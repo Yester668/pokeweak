@@ -105,23 +105,22 @@ function EvolutionChain({ stages, onSelect }) {
     <p style={{ color: '#444', fontSize: 13, margin: 0 }}>No evoluciona</p>
   )
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: 6 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0 }}>
       {stages.map((stage, si) => (
-        <div key={si} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          {/* Conector entre stages — ancho fijo */}
+        <div key={si} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+          {/* Conector vertical entre stages */}
           {si > 0 && (
-            <div style={{
-              width: 38, flexShrink: 0,
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-            }}>
-              <span style={{ color: '#333', fontSize: 14 }}>→</span>
-              <span style={{ fontSize: 9, color: '#444', textAlign: 'center', lineHeight: 1.2, wordBreak: 'break-word' }}>
-                {stage[0]?.method ?? ''}
-              </span>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '6px 0', gap: 1 }}>
+              <span style={{ color: '#333', fontSize: 16, lineHeight: 1 }}>↓</span>
+              {stage[0]?.method && (
+                <span style={{ fontSize: 10, color: '#555', textAlign: 'center' }}>
+                  {stage[0].method}
+                </span>
+              )}
             </div>
           )}
-          {/* Columna de Pokémon (puede haber varios en ramificaciones) */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center' }}>
+          {/* Pokémon de este stage — fila centrada (varios si hay ramificación) */}
+          <div style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
             {stage.map(p => <EvoCell key={p.id} pokemon={p} onSelect={onSelect} />)}
           </div>
         </div>
@@ -130,7 +129,7 @@ function EvolutionChain({ stages, onSelect }) {
   )
 }
 
-function AbilitiesList({ abilities }) {
+function AbilitiesList({ abilities = [] }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       {abilities.map(a => (

@@ -53,7 +53,7 @@ export function prefetchPokemon(ids) {
 }
 
 // ── Caché separada para datos completos de Pokédex ───────────────────────────
-const FULL_CACHE_KEY = 'pokeweak_pokedex_v1'
+const FULL_CACHE_KEY = 'pokeweak_pokedex_v2'
 
 function getFullCache() {
   try { return JSON.parse(localStorage.getItem(FULL_CACHE_KEY) || '{}') }
