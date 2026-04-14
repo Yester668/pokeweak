@@ -387,14 +387,15 @@ button { font-family: inherit; }
 }
 .tr-amulet {
   display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  align-items: flex-start;
+  gap: 10px;
   background: #1a1a30;
   border: 1px solid #2a2a4a;
-  border-radius: 6px;
-  padding: 7px 13px;
+  border-radius: 8px;
+  padding: 9px 14px;
   cursor: help;
   transition: border-color 0.15s;
+  max-width: 260px;
 }
 .tr-amulet:hover { border-color: #7038F8; }
 

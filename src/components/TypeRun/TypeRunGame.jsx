@@ -104,9 +104,12 @@ function AmuletRack({ amulets }) {
   return (
     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
       {amulets.map(a => (
-        <div key={a.id} className="tr-amulet" title={`${a.description}\n${a.hint}`}>
-          <span>{a.emoji}</span>
-          <span style={{ fontSize: 11, color: '#aaa' }}>{a.name}</span>
+        <div key={a.id} className="tr-amulet" title={a.hint}>
+          <span style={{ fontSize: 20, lineHeight: 1 }}>{a.emoji}</span>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#ddd', lineHeight: 1.2 }}>{a.name}</div>
+            <div style={{ fontSize: 11, color: '#666', lineHeight: 1.3, marginTop: 2 }}>{a.description}</div>
+          </div>
         </div>
       ))}
     </div>
