@@ -9,12 +9,14 @@ const BattlasPage        = lazy(() => import('./pages/BattlasPage'))
 const TypeRunHub         = lazy(() => import('./pages/TypeRunHub'))
 const TypeRunPage        = lazy(() => import('./pages/TypeRunPage'))
 const TypeRunSurvivalPage = lazy(() => import('./pages/TypeRunSurvivalPage'))
+const PokedexPage         = lazy(() => import('./pages/PokedexPage'))
 
 const NAV = [
   { to: '/',           label: 'Inicio',      icon: '⚡', exact: true },
   { to: '/explorar',   label: 'Explorar',    icon: '🔍' },
   { to: '/flashcards', label: 'Flashcards',  icon: '🃏' },
   { to: '/batallas',   label: 'Batallas',    icon: '⚔️' },
+  { to: '/pokedex',    label: 'Pokédex',     icon: '📖' },
   { to: '/typerun',    label: 'TypeRun',     icon: '🎰' },
 ]
 
@@ -68,6 +70,7 @@ function Layout() {
             <Route path="explorar/:type/:secondType"  element={<ExplorerPage />} />
             <Route path="flashcards"                  element={<FlashcardsPage />} />
             <Route path="batallas"                    element={<BattlasPage />} />
+            <Route path="pokedex"                     element={<PokedexPage />} />
             <Route path="typerun"                     element={<TypeRunHub />} />
             <Route path="typerun/clasico"             element={<TypeRunPage />} />
             <Route path="typerun/supervivencia"       element={<TypeRunSurvivalPage />} />

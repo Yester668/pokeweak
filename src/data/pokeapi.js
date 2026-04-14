@@ -51,3 +51,77 @@ export async function fetchPokemonData(idOrName) {
 export function prefetchPokemon(ids) {
   for (const id of ids) fetchPokemonData(id).catch(() => {})
 }
+
+// ── Caché separada para datos completos de Pokédex ───────────────────────────
+const FULL_CACHE_KEY = 'pokeweak_pokedex_v1'
+
+function getFullCache() {
+  try { return JSON.parse(localStorage.getItem(FULL_CACHE_KEY) || '{}') }
+  catch { return {} }
+}
+function saveFullCache(cache) {
+  try { localStorage.setItem(FULL_CACHE_KEY, JSON.stringify(cache)) }
+  catch {}
+}
+
+/**
+ * Devuelve datos completos para la Pokédex:
+ * { id, name, types, spriteUrl, artworkUrl, height, weight, stats[] }
+ */
+export async function fetchPokemonFull(idOrName) {
+  const cache = getFullCache()
+  const key   = String(idOrName).toLowerCase()
+
+  if (cache[key]?.ts && Date.now() - cache[key].ts < CACHE_TTL) {
+    return cache[key].data
+  }
+
+  const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${key}`)
+  if (!res.ok) throw new Error(`PokéAPI ${res.status}: ${idOrName}`)
+
+  const json = await res.json()
+  const STAT_KEYS = { hp: 'HP', attack: 'Ataque', defense: 'Defensa',
+    'special-attack': 'At. Esp.', 'special-defense': 'Def. Esp.', speed: 'Velocidad' }
+
+  const data = {
+    id:         json.id,
+    name:       json.name,
+    types:      json.types.map(t => t.type.name),
+    spriteUrl:  json.sprites.front_default,
+    artworkUrl: json.sprites.other?.['official-artwork']?.front_default ?? json.sprites.front_default,
+    height:     json.height,   // decímetros
+    weight:     json.weight,   // hectogramos
+    stats: json.stats.map(s => ({
+      key:   s.stat.name,
+      label: STAT_KEYS[s.stat.name] ?? s.stat.name,
+      value: s.base_stat,
+    })),
+  }
+
+  saveFullCache({ ...cache, [key]: { ts: Date.now(), data } })
+  return data
+}
+
+/**
+ * Descripción en español desde el endpoint de species.
+ * Devuelve string o null si no hay entrada en español.
+ */
+export async function fetchPokemonSpecies(id) {
+  const cacheKey = `species_${id}`
+  const cache    = getFullCache()
+
+  if (cache[cacheKey]?.ts && Date.now() - cache[cacheKey].ts < CACHE_TTL) {
+    return cache[cacheKey].data
+  }
+
+  const res = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}`)
+  if (!res.ok) return null
+
+  const json = await res.json()
+  const entry = json.flavor_text_entries.find(e => e.language.name === 'es')
+    ?? json.flavor_text_entries.find(e => e.language.name === 'en')
+  const text = entry?.flavor_text?.replace(/\f|\n/g, ' ') ?? null
+
+  saveFullCache({ ...cache, [cacheKey]: { ts: Date.now(), data: text } })
+  return text
+}
