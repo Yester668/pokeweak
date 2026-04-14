@@ -444,10 +444,6 @@ export default function TypeRunGame() {
     })
   }, [])
 
-  if (runLoading || !state) return <RunLoading />
-
-  const { phase, rival, turnsLeft, hand, selected, amulets, lastResult, timerKey, typesHidden, cursedType, stats } = state
-
   // ── Seleccionar tipo de la mano ───
   const toggleSelect = useCallback((idx) => {
     setState(s => {
@@ -611,8 +607,11 @@ export default function TypeRunGame() {
     })
   }, [])
 
-
   // ── Render ────────────────────────────────────────────────────────────────
+  if (runLoading || !state) return <RunLoading />
+
+  const { phase, rival, turnsLeft, hand, selected, amulets, lastResult, timerKey, typesHidden, cursedType, stats } = state
+
   if (phase === 'gameover') return <GameOver stats={stats} onRestart={restart} />
   if (phase === 'victory')  return <Victory  stats={stats} onRestart={restart} />
 
